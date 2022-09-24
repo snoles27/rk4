@@ -4,9 +4,10 @@
 
 const int stateSize = 2;
 
+
 typedef Eigen::Matrix<double,stateSize,1> stateVec;
 
-void rk4Step(stateVec (*dz)(double, stateVec), double* z, double ti, double dt, int i);
+stateVec rk4Step(stateVec (*dz)(double, stateVec), stateVec z_vec, double ti, double dt, int i);
 
 stateVec stateDerivative(double t, stateVec z){
 
@@ -27,51 +28,46 @@ double* rk4(stateVec (*dz)(double, stateVec), double* z0, double t0, double dt, 
 
     tspan[0] = t0;
 
+    stateVec hold;
+    stateVec z_vec;
+
     for(int i = 0; i < stateSize; i++){
         z[i] = z0[i];
     }
 
     for(int i = 0; i < n; i++){
+
         tspan[i+1] = dt + tspan[i];
-        rk4Step(dz, z, tspan[i], dt, i);
-        //std::cout << z[(i + 1) * stateSize] << std::endl;
+
+        for(int j = 0; j < stateSize; j++){
+            z_vec[j] = z[i*stateSize+j];
+        }
+
+        hold = rk4Step(dz, z_vec, tspan[i], dt, i);
+
+        for(int j = 0; j < stateSize; j++){
+            z[(i+1)*stateSize + j] = hold[j];
+        }
     }
 
-    for(int i = 0; i < stateSize * n + 1; i = i + 2){
-        std::cout << z[i] << std::endl;
-    }
+    // for(int i = 0; i < stateSize * n + 1; i = i + 2){
+    //     std::cout << z[i] << std::endl;
+    // }
 
     return z;
     
 
 }
 
-void rk4Step(stateVec (*dz)(double, stateVec), double* z, double ti, double dt, int i){
-
-    stateVec z_vec;
-    for(int j = 0; j < stateSize; j++){
-        z_vec[j] = z[i*stateSize+j];
-    }
-
+stateVec rk4Step(stateVec (*dz)(double, stateVec), stateVec z_vec, double ti, double dt, int i){
 
     stateVec k1, k2, k3, k4;
-
     k1 = stateDerivative(ti, z_vec);
     k2 = stateDerivative(ti + 0.5 * dt, z_vec + 0.5 * dt * k1);
     k3 = stateDerivative(ti + 0.5 * dt, z_vec + 0.5 * dt * k2);
     k4 = stateDerivative(ti + dt, z_vec + dt * k3);
 
-    
-
-    stateVec z1_vec = z_vec + 1.0/6.0 * (k1 + 2*k2 + 2*k3 + k4) * dt;
-
-    //write z1_vec to z now
-
-    for(int j = 0; j < stateSize; j++){
-        z[(i+1)*stateSize + j] = z1_vec[j];
-        //std::cout<<"Write to: " << (i+1)*stateSize + j <<std::endl;
-    }
-
+    return z_vec + 1.0/6.0 * (k1 + 2*k2 + 2*k3 + k4) * dt;
 }
 
 int main(){
@@ -79,15 +75,16 @@ int main(){
     double z0[stateSize] = {1, .01};
     double t0 = 0;
     double dt = pow(10,-3);
-    int n = 5000;
+    const int n = 5000;
+    
 
     double* z = rk4(stateDerivative, z0, t0, dt, n);
 
     std::cout << "Returned rk4" <<std::endl;
 
-    // for(int i = 0; i < stateSize * n + 1; i = i + 2){
-    //     std::cout << z[i] << std::endl;
-    // }
+    for(int i = 0; i < stateSize * n + 1; i = i + 2){
+        std::cout << z[i] << std::endl;
+    }
 
     delete[] z;
 
