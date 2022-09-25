@@ -1,13 +1,18 @@
 #include <iostream>
+#include <strings.h>
 #include <Eigen/Dense>
 #include <math.h>
+#include <fstream>
 
 const int stateSize = 2;
+const int numStatesStore = 10; 
+
+//set startup-with-shell off
 
 
 typedef Eigen::Matrix<double,stateSize,1> stateVec;
 
-stateVec rk4Step(stateVec (*dz)(double, stateVec), stateVec z_vec, double ti, double dt, int i);
+stateVec rk4Step(stateVec (*dz)(double, stateVec), stateVec z_vec, double ti, double dt);
 
 stateVec stateDerivative(double t, stateVec z){
 
@@ -19,47 +24,63 @@ stateVec stateDerivative(double t, stateVec z){
 }
 
 
-double* rk4(stateVec (*dz)(double, stateVec), double* z0, double t0, double dt, int n){
+stateVec rk4(stateVec (*dz)(double, stateVec), stateVec z0, double t0, double dt, int n, std::string fileName){
 
-    double* z = new double[stateSize * (n + 1)]; //z0 plus n states
-    double* tspan = new double(n+1);
+    double* zlog = new double[stateSize * numStatesStore]; //z0
+    double* tspanlog = new double[numStatesStore];
+    
+    stateVec current = z0;
+    double currentTime = t0;
+    std::ofstream file;
+    file.open(fileName, std::ofstream::out | std::ofstream::trunc);
 
-    printf("Pointer: %p\n", z);
-
-    tspan[0] = t0;
-
-    stateVec hold;
-    stateVec z_vec;
-
+    //put first state in the storeArray
+    tspanlog[0] = currentTime;
     for(int i = 0; i < stateSize; i++){
-        z[i] = z0[i];
+        zlog[i] = z0[i];
     }
+
+    int j = 1; //counter for states in array
 
     for(int i = 0; i < n; i++){
 
-        tspan[i+1] = dt + tspan[i];
+        current = rk4Step(dz, current, currentTime, dt);
+        currentTime += dt;
 
-        for(int j = 0; j < stateSize; j++){
-            z_vec[j] = z[i*stateSize+j];
+        //fill zlog with current state
+        tspanlog[j] = currentTime;
+        for(int k = 0; k < stateSize; k++){
+            zlog[j*stateSize + k] = current[k];
         }
+        std::cout << std::endl;
 
-        hold = rk4Step(dz, z_vec, tspan[i], dt, i);
+        //incriment log array
+        j++;
 
-        for(int j = 0; j < stateSize; j++){
-            z[(i+1)*stateSize + j] = hold[j];
+        if (j == numStatesStore || i == (n-1))
+        {
+            j = 0;
+            //write 
+            for(int k = 0; k < numStatesStore; k++){
+                file << tspanlog[k] << " ";
+                tspanlog[k] = 0;
+                for(int l = 0; l < stateSize; l++)
+                {
+                    file << zlog[(k*stateSize) + l] << " ";
+                    zlog[(k*stateSize) + l] = 0.0;
+                }
+                file << std::endl;
+            }
         }
     }
 
-    // for(int i = 0; i < stateSize * n + 1; i = i + 2){
-    //     std::cout << z[i] << std::endl;
-    // }
-
-    return z;
+    file.close();
+    return current;
     
 
 }
 
-stateVec rk4Step(stateVec (*dz)(double, stateVec), stateVec z_vec, double ti, double dt, int i){
+stateVec rk4Step(stateVec (*dz)(double, stateVec), stateVec z_vec, double ti, double dt){
 
     stateVec k1, k2, k3, k4;
     k1 = stateDerivative(ti, z_vec);
@@ -72,20 +93,16 @@ stateVec rk4Step(stateVec (*dz)(double, stateVec), stateVec z_vec, double ti, do
 
 int main(){
 
-    double z0[stateSize] = {1, .01};
+    stateVec z0 (1,0);
     double t0 = 0;
-    double dt = pow(10,-3);
-    const int n = 5000;
+    double dt = pow(10,-2);
+    double n = 104;
+    std::string saveFile = "data.txt";
     
 
-    double* z = rk4(stateDerivative, z0, t0, dt, n);
+    stateVec final = rk4(stateDerivative, z0, t0, dt, n, saveFile);
 
     std::cout << "Returned rk4" <<std::endl;
 
-    for(int i = 0; i < stateSize * n + 1; i = i + 2){
-        std::cout << z[i] << std::endl;
-    }
-
-    delete[] z;
 
 }
