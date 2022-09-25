@@ -52,7 +52,6 @@ stateVec rk4(stateVec (*dz)(double, stateVec), stateVec z0, double t0, double dt
         for(int k = 0; k < stateSize; k++){
             zlog[j*stateSize + k] = current[k];
         }
-        std::cout << std::endl;
 
         //incriment log array
         j++;
@@ -60,24 +59,21 @@ stateVec rk4(stateVec (*dz)(double, stateVec), stateVec z0, double t0, double dt
         if (j == numStatesStore || i == (n-1))
         {
             j = 0;
-            //write 
+            //write array to file
             for(int k = 0; k < numStatesStore; k++){
-                file << tspanlog[k] << " ";
+                file << tspanlog[k] << ", ";
                 tspanlog[k] = 0;
                 for(int l = 0; l < stateSize; l++)
                 {
-                    file << zlog[(k*stateSize) + l] << " ";
+                    file << zlog[(k*stateSize) + l] << ", ";
                     zlog[(k*stateSize) + l] = 0.0;
                 }
                 file << std::endl;
             }
         }
     }
-
     file.close();
     return current;
-    
-
 }
 
 stateVec rk4Step(stateVec (*dz)(double, stateVec), stateVec z_vec, double ti, double dt){
