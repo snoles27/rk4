@@ -5,10 +5,9 @@
 #include <fstream>
 
 const int stateSize = 2;
-const int numStatesStore = 10; 
+const int numStatesStore = 50; 
 
-//set startup-with-shell off
-
+//"set startup-with-shell off" when debuggging
 
 typedef Eigen::Matrix<double,stateSize,1> stateVec;
 
@@ -79,10 +78,10 @@ stateVec rk4(stateVec (*dz)(double, stateVec), stateVec z0, double t0, double dt
 stateVec rk4Step(stateVec (*dz)(double, stateVec), stateVec z_vec, double ti, double dt){
 
     stateVec k1, k2, k3, k4;
-    k1 = stateDerivative(ti, z_vec);
-    k2 = stateDerivative(ti + 0.5 * dt, z_vec + 0.5 * dt * k1);
-    k3 = stateDerivative(ti + 0.5 * dt, z_vec + 0.5 * dt * k2);
-    k4 = stateDerivative(ti + dt, z_vec + dt * k3);
+    k1 = dz(ti, z_vec);
+    k2 = dz(ti + 0.5 * dt, z_vec + 0.5 * dt * k1);
+    k3 = dz(ti + 0.5 * dt, z_vec + 0.5 * dt * k2);
+    k4 = dz(ti + dt, z_vec + dt * k3);
 
     return z_vec + 1.0/6.0 * (k1 + 2*k2 + 2*k3 + k4) * dt;
 }
@@ -91,8 +90,8 @@ int main(){
 
     stateVec z0 (1,0);
     double t0 = 0;
-    double dt = pow(10,-2);
-    double n = 104;
+    double dt = pow(10,-3);
+    double n = 4999;
     std::string saveFile = "data.txt";
     
 
